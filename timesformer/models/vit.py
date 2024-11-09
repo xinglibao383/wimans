@@ -1,22 +1,14 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-# Copyright 2020 Ross Wightman
-# Modified Model definition
-
 import torch
 import torch.nn as nn
 from functools import partial
-import math
-import warnings
 import torch.nn.functional as F
-import numpy as np
 
 from timesformer.models.vit_utils import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timesformer.models.helpers import load_pretrained
 from timesformer.models.vit_utils import DropPath, to_2tuple, trunc_normal_
 
 from .build import MODEL_REGISTRY
-from torch import einsum
-from einops import rearrange, reduce, repeat
+from einops import rearrange
 
 def _cfg(url='', **kwargs):
     return {
@@ -185,6 +177,7 @@ class VisionTransformer(nn.Module):
         self.attention_type = attention_type
         self.depth = depth
         self.dropout = nn.Dropout(dropout)
+        self.num_users = 6
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
         self.patch_embed = PatchEmbed(
@@ -209,7 +202,9 @@ class VisionTransformer(nn.Module):
         self.norm = norm_layer(embed_dim)
 
         # Classifier head
-        self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        # self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(embed_dim, self.num_users * num_classes) if num_classes > 0 else nn.Identity()
+        self.head1 = nn.Linear(embed_dim, self.num_users * 2) if num_classes > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
@@ -244,7 +239,7 @@ class VisionTransformer(nn.Module):
 
     def reset_classifier(self, num_classes, global_pool=''):
         self.num_classes = num_classes
-        self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(self.embed_dim, 6 * num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
         B = x.shape[0]
@@ -301,8 +296,21 @@ class VisionTransformer(nn.Module):
 
     def forward(self, x):
         x = self.forward_features(x)
-        x = self.head(x)
-        return x
+
+        # [batch_size, num_users * num_activities]
+        y = self.head(x)
+        y = y.view(y.size(0), self.num_users, self.num_classes)
+        y = F.softmax(y, dim=2)
+
+        # [batch_size, num_users * 2]
+        y1 = self.head1(x)
+        y1 = y1.view(y1.size(0), self.num_users, 2)
+        y1 = F.softmax(y1, dim=2)
+
+        mask = y1[:, :, 0] > y1[:, :, 1]  # 判断没有活动的用户
+        y[mask] = 0  # 对没有活动的用户，置0
+
+        return y, y1
 
 def _conv_filter(state_dict, patch_size=16):
     """ convert patch embedding weight from manual patchify + linear proj to conv"""
@@ -349,3 +357,59 @@ class TimeSformer(nn.Module):
     def forward(self, x):
         x = self.model(x)
         return x
+
+
+class DeconvNet(nn.Module):
+    def __init__(self):
+        super(DeconvNet, self).__init__()
+
+        self.deconv1 = nn.ConvTranspose2d(30, 32, kernel_size=4, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(32, 64, kernel_size=4, stride=2, padding=1)
+        self.deconv3 = nn.ConvTranspose2d(64, 128, kernel_size=4, stride=2, padding=1)
+        self.deconv4 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1)
+        self.deconv6 = nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1)
+
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        batch_size, time, transmitter, receiver, subcarrier = x.size()
+        x = x.view(batch_size * time, transmitter, receiver, subcarrier)
+        # [batch_size * time, transmitter, receiver, subcarrier] -> [batch_size * time, subcarrier, transmitter, receiver]
+        x = x.permute(0, 3, 1, 2)
+
+        x = self.relu(self.deconv1(x))
+        x = self.relu(self.deconv2(x))
+        x = self.relu(self.deconv3(x))
+        x = self.relu(self.deconv4(x))
+        x = self.relu(self.deconv5(x))
+        x = self.deconv6(x)
+
+        # [batch_size * time, subcarrier, transmitter, receiver] -> [batch_size, time, subcarrier, transmitter, receiver]
+        x = x.view(batch_size, time, 3, 192, 192)
+        # [batch_size, time, subcarrier, transmitter, receiver] -> [batch_size, subcarrier, time, transmitter, receiver]
+        x = x.permute(0, 2, 1, 3, 4)
+
+        return x
+
+
+@MODEL_REGISTRY.register()
+class MyTimeSformer(nn.Module):
+    def __init__(self, img_size=192, patch_size=16, num_classes=9, num_frames=30, attention_type='divided_space_time',
+                 **kwargs):
+        super(MyTimeSformer, self).__init__()
+        self.deconv = DeconvNet()
+        self.model = VisionTransformer(img_size=img_size, num_classes=num_classes, patch_size=patch_size, embed_dim=768,
+                                       depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                                       norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0.,
+                                       drop_path_rate=0.1, num_frames=num_frames, attention_type=attention_type,
+                                       **kwargs)
+
+        self.attention_type = attention_type
+        self.model.default_cfg = default_cfgs['vit_base_patch' + str(patch_size) + '_224']
+        self.num_patches = (img_size // patch_size) * (img_size // patch_size)
+
+    def forward(self, x):
+        x = self.deconv(x)
+        y, y1 = self.model(x)
+        return y1, y

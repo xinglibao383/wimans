@@ -16,7 +16,7 @@ def compute_and_update_bn_stats(model, data_loader, num_batches=200):
     running mean and running var more precise.
     Args:
         model (model): the model using to compute and update the bn stats.
-        data_loader (dataloader): dataloader using to provide inputs.
+        data_loader (wimans): dataloader using to provide inputs.
         num_batches (int): running iterations using to compute the stats.
     """
 
