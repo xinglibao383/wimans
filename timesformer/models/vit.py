@@ -299,16 +299,12 @@ class VisionTransformer(nn.Module):
 
         # [batch_size, num_users * num_activities]
         y = self.head(x)
-        y = y.view(y.size(0), self.num_users, self.num_classes)
-        y = F.softmax(y, dim=2)
+        batch_size = y.size(0)
+        y = y.view(batch_size, self.num_users, self.num_classes)
 
         # [batch_size, num_users * 2]
         y1 = self.head1(x)
-        y1 = y1.view(y1.size(0), self.num_users, 2)
-        y1 = F.softmax(y1, dim=2)
-
-        mask = y1[:, :, 0] > y1[:, :, 1]  # 判断没有活动的用户
-        y[mask] = 0  # 对没有活动的用户，置0
+        y1 = y1.view(batch_size, self.num_users, 2)
 
         return y, y1
 
@@ -359,20 +355,51 @@ class TimeSformer(nn.Module):
         return x
 
 
+class TimeNet(nn.Module):
+    def __init__(self):
+        super(TimeNet, self).__init__()
+        self.conv1 = nn.Conv2d(3000, 512, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(512, 256, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1)
+        
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        batch_size, time, transmitter, receiver, subcarrier = x.size()
+        x = x.view(batch_size, time, transmitter * receiver, subcarrier)
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.conv4(x))
+        x = x.view(batch_size, 64, transmitter, receiver, subcarrier)
+        return x
+    
+
 class DeconvNet(nn.Module):
     def __init__(self):
         super(DeconvNet, self).__init__()
 
+        self.time_net = TimeNet()
+
+        """
         self.deconv1 = nn.ConvTranspose2d(30, 32, kernel_size=4, stride=2, padding=1)
         self.deconv2 = nn.ConvTranspose2d(32, 64, kernel_size=4, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(64, 128, kernel_size=4, stride=2, padding=1)
         self.deconv4 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)
         self.deconv5 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1)
         self.deconv6 = nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1)
+        """
+        self.deconv1 = nn.ConvTranspose2d(30, 64, kernel_size=4, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(64, 128, kernel_size=4, stride=2, padding=1)
+        self.deconv3 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)
+        self.deconv4 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1)
 
         self.relu = nn.ReLU()
 
     def forward(self, x):
+        x = self.time_net(x)
         batch_size, time, transmitter, receiver, subcarrier = x.size()
         x = x.view(batch_size * time, transmitter, receiver, subcarrier)
         # [batch_size * time, transmitter, receiver, subcarrier] -> [batch_size * time, subcarrier, transmitter, receiver]
@@ -382,11 +409,13 @@ class DeconvNet(nn.Module):
         x = self.relu(self.deconv2(x))
         x = self.relu(self.deconv3(x))
         x = self.relu(self.deconv4(x))
-        x = self.relu(self.deconv5(x))
-        x = self.deconv6(x)
+        # x = self.relu(self.deconv5(x))
+        # x = self.deconv6(x)
+        x = self.deconv5(x)
 
         # [batch_size * time, subcarrier, transmitter, receiver] -> [batch_size, time, subcarrier, transmitter, receiver]
-        x = x.view(batch_size, time, 3, 192, 192)
+        # x = x.view(batch_size, time, 3, 192, 192)
+        x = x.view(batch_size, time, 3, 96, 96)
         # [batch_size, time, subcarrier, transmitter, receiver] -> [batch_size, subcarrier, time, transmitter, receiver]
         x = x.permute(0, 2, 1, 3, 4)
 
@@ -395,13 +424,13 @@ class DeconvNet(nn.Module):
 
 @MODEL_REGISTRY.register()
 class MyTimeSformer(nn.Module):
-    def __init__(self, img_size=192, patch_size=16, num_classes=9, num_frames=30, attention_type='divided_space_time',
+    def __init__(self, img_size=96, patch_size=16, num_classes=10, num_frames=64, attention_type='divided_space_time',
                  **kwargs):
         super(MyTimeSformer, self).__init__()
         self.deconv = DeconvNet()
         self.model = VisionTransformer(img_size=img_size, num_classes=num_classes, patch_size=patch_size, embed_dim=768,
                                        depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
-                                       norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0.,
+                                       norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0.1, attn_drop_rate=0.1,
                                        drop_path_rate=0.1, num_frames=num_frames, attention_type=attention_type,
                                        **kwargs)
 
@@ -411,5 +440,90 @@ class MyTimeSformer(nn.Module):
 
     def forward(self, x):
         x = self.deconv(x)
+        y, y1 = self.model(x)
+        return y1, y
+    
+
+class MyPreModel(nn.Module):
+    def __init__(self, kernel_size=3, stride=2, padding=1):
+        super(MyPreModel, self).__init__()
+
+        self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn1 = nn.BatchNorm1d(512)
+        self.conv2 = nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn2 = nn.BatchNorm1d(1024)
+        self.conv3 = nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn3 = nn.BatchNorm1d(2048)
+        self.conv4 = nn.Conv1d(in_channels=2048, out_channels=2048, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn4 = nn.BatchNorm1d(2048)
+        self.conv5 = nn.Conv1d(in_channels=2048, out_channels=1728, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn5 = nn.BatchNorm1d(1728)
+        self.deconv1 = nn.ConvTranspose2d(3, 8, kernel_size=4, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(8, 3, kernel_size=4, stride=2, padding=1)
+
+    def forward(self, x):
+        batch_size, time, transmitter, receiver, subcarrier = x.shape
+        x = x.view(batch_size, time, transmitter * receiver * subcarrier)
+        x = x.permute(0, 2, 1)
+        
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = F.relu(x)
+        
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = F.relu(x)
+        
+        x = self.conv5(x)
+        x = self.bn5(x)
+        x = F.relu(x)
+        
+        x = x.permute(0, 2, 1)
+        # [batch_size, time, transmitter, receiver, subcarrier]
+        x = x.reshape(batch_size, 94, 24, 24, 3)
+        # [batch_size, time, transmitter, receiver, subcarrier]
+        x = x.reshape(batch_size * 94, 24, 24, 3)
+        # [batch_size * time, subcarrier, transmitter, receiver]
+        x = x.permute(0, 3, 1, 2)
+        
+        x = self.deconv1(x)
+        x = self.deconv2(x)
+        
+        # [batch_size, time, transmitter, receiver, subcarrier]
+        x = x.reshape(batch_size, 94, 96, 96, 3)
+        # [batch_size, subcarrier, time, transmitter, receiver]
+        x = x.permute(0, 4, 1, 2, 3)
+        
+        return x
+    
+
+
+
+@MODEL_REGISTRY.register()
+class MyTimeSformerV2(nn.Module):
+    def __init__(self, img_size=96, patch_size=16, num_classes=10, num_frames=94, attention_type='divided_space_time',
+                 **kwargs):
+        super(MyTimeSformerV2, self).__init__()
+        self.pre = MyPreModel()
+        self.model = VisionTransformer(img_size=img_size, num_classes=num_classes, patch_size=patch_size, embed_dim=768,
+                                       depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                                       norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0.1, attn_drop_rate=0.1,
+                                       drop_path_rate=0.1, num_frames=num_frames, attention_type=attention_type,
+                                       **kwargs)
+
+        self.attention_type = attention_type
+        self.model.default_cfg = default_cfgs['vit_base_patch' + str(patch_size) + '_224']
+        self.num_patches = (img_size // patch_size) * (img_size // patch_size)
+
+    def forward(self, x):
+        x = self.pre(x)
         y, y1 = self.model(x)
         return y1, y
