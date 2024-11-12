@@ -9,22 +9,30 @@ from tools.logger import Logger
 from models.vit import VisionTransformer
 
 
+def accuracy(y, y_hat):
+    y_hat_labels = torch.argmax(y_hat, dim=-1, keepdim=True)
+    y_hat_labels[y_hat.max(dim=-1).values <= 0.5] = -1
+
+    y_labels = torch.argmax(y, dim=-1, keepdim=True)
+    y_labels[y.max(dim=-1).values <= 0.5] = -1
+
+    return (y_hat_labels == y_labels).float().mean().item()
+
+
 def accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat):
     y1_hat = (y1_hat > 0.5).float()  # 对于身份识别，0.5为阈值
     identity_accuracy = (y1_hat == y1).float().mean().item()
 
-    y2_hat = (y2_hat > 0.5).float()  # 对于位置识别，0.5为阈值
-    location_accuracy = (y2_hat == y2).float().mean().item()
+    location_accuracy = accuracy(y2, y2_hat)
 
-    y3_hat = (y3_hat > 0.5).float()  # 对于活动识别，0.5为阈值
-    activity_accuracy = (y3_hat == y3).float().mean().item()
+    activity_accuracy = accuracy(y3, y3_hat)
 
     return identity_accuracy, location_accuracy, activity_accuracy
 
 
 def evaluate(net, data_iter, loss_func=nn.BCELoss()):
-    # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数
-    metric = Accumulator(8)
+    # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数, 受试者数量
+    metric = Accumulator(9)
     device = next(iter(net.parameters())).device
     net.eval()
 
@@ -43,11 +51,14 @@ def evaluate(net, data_iter, loss_func=nn.BCELoss()):
             identity_acc, location_acc, activity_acc = accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
             metric.add(loss.item() * batch_size,
                        loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
-                       batch_size, identity_acc * batch_size, location_acc * batch_size, activity_acc * batch_size)
+                       batch_size,
+                       identity_acc * batch_size * num_users, location_acc * batch_size * num_users,
+                       activity_acc * batch_size * num_users,
+                       batch_size * num_users)
 
     return (metric[0] / metric[4],
             metric[1] / metric[4], metric[2] / metric[4], metric[3] / metric[4],
-            metric[5] / metric[4], metric[6] / metric[4], metric[7] / metric[4])
+            metric[5] / metric[8], metric[6] / metric[8], metric[7] / metric[8])
 
 
 def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devices, checkpoint_save_dir_path, logger):
@@ -68,8 +79,8 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
     current_patience = 0
 
     for epoch in range(num_epochs):
-        # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数
-        metric = Accumulator(8)
+        # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数, 受试者数量
+        metric = Accumulator(9)
         net.train()
         for i, (x, y1, y2, y3) in enumerate(train_iter):
             batch_size, num_users = y1.shape
@@ -88,9 +99,12 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
 
             with torch.no_grad():
                 identity_acc, location_acc, activity_acc = accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
-                metric.add(loss.item() * batch_size, loss1.item() * batch_size, loss2.item() * batch_size,
-                           loss3.item() * batch_size,
-                           batch_size, identity_acc * batch_size, location_acc * batch_size, activity_acc * batch_size)
+                metric.add(loss.item() * batch_size,
+                           loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
+                           batch_size,
+                           identity_acc * batch_size * num_users, location_acc * batch_size * num_users,
+                           activity_acc * batch_size * num_users,
+                           batch_size * num_users)
 
                 if i % 20 == 0:
                     train_loss, train_loss1, train_loss2, train_loss3 = (metric[0] / metric[4],
@@ -103,9 +117,9 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
                                                                                                  metric[1] / metric[4],
                                                                                                  metric[2] / metric[4],
                                                                                                  metric[3] / metric[4],
-                                                                                                 metric[5] / metric[4],
-                                                                                                 metric[6] / metric[4],
-                                                                                                 metric[7] / metric[4])
+                                                                                                 metric[5] / metric[8],
+                                                                                                 metric[6] / metric[8],
+                                                                                                 metric[7] / metric[8])
 
         eval_loss, eval_loss1, eval_loss2, eval_loss3, eval_acc1, eval_acc2, eval_acc3 = evaluate(net, eval_iter)
 
@@ -158,7 +172,7 @@ if __name__ == "__main__":
     devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
 
     dataset = WiMANS(root_path='/home/dataset/XLBWorkSpace/wimans')
-    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=16)
+    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=32)
 
     net = VisionTransformer()
 
