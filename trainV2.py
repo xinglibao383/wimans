@@ -19,7 +19,7 @@ def accuracy(y, y_hat):
     return (y_hat_labels == y_labels).float().mean().item()
 
 
-def accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat):
+def compute_three_accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat):
     y1_hat = (y1_hat > 0.5).float()  # 对于身份识别，0.5为阈值
     identity_accuracy = (y1_hat == y1).float().mean().item()
 
@@ -48,7 +48,7 @@ def evaluate(net, data_iter, loss_func=nn.BCELoss()):
 
             loss = loss1 + loss2 + loss3
 
-            identity_acc, location_acc, activity_acc = accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
+            identity_acc, location_acc, activity_acc = compute_three_accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
             metric.add(loss.item() * batch_size,
                        loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
                        batch_size,
@@ -98,7 +98,7 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
             optimizer.step()
 
             with torch.no_grad():
-                identity_acc, location_acc, activity_acc = accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
+                identity_acc, location_acc, activity_acc = compute_three_accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
                 metric.add(loss.item() * batch_size,
                            loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
                            batch_size,
