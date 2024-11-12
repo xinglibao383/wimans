@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from resize_model import ResizeModel
+from .resize_model import ResizeModel
 
 
 class VisionTransformer(torch.nn.Module):

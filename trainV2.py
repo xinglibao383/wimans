@@ -6,7 +6,7 @@ from tools.accumulator import Accumulator
 from wimans import WiMANS, get_dataloaders
 from timesformer.models.vit import MyTimeSformer, MyTimeSformerV2
 from tools.logger import Logger
-from .models.vit import VisionTransformer
+from models.vit import VisionTransformer
 
 
 def accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat):
@@ -156,15 +156,10 @@ if __name__ == "__main__":
     logger = Logger(save_path=output_save_path)
 
     devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
-    # devices = [torch.device("cpu")]
 
-    npy_dir = '/home/dataset/XLBWorkSpace/wimans/wifi_csi/amp/'  # .npy 文件所在的目录
-    csv_file = '/home/dataset/XLBWorkSpace/wimans/annotation.csv'  # CSV 文件路径
-    dataset = WiMANS(npy_dir, csv_file)
+    dataset = WiMANS(root_path='/home/dataset/XLBWorkSpace/wimans')
     train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=16)
 
-    # net = MyTimeSformer()
-    # net = MyTimeSformerV2(img_size=96, num_classes=10, num_frames=3000, attention_type='divided_space_time')
     net = VisionTransformer()
 
     pth_path = train(net, train_loader, val_loader, 0.0001, 300, 20, devices, output_save_path, logger)
