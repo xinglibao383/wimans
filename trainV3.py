@@ -70,12 +70,13 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
-    loss_func1 = nn.CrossEntropyLoss()
+    identity_weights = torch.tensor([1.727, 2.375], dtype=torch.float32).to(devices[0])
+    loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)
 
-    location_weights = torch.tensor([2, 10, 10, 10, 10, 10], dtype=torch.float32).to(devices[0])
+    location_weights = torch.tensor([1.727, 11.505, 11.720, 12.058, 12.058, 12.058], dtype=torch.float32).to(devices[0])
     loss_func2 = nn.CrossEntropyLoss(weight=location_weights)
 
-    activity_weights = torch.tensor([2, 45, 45, 45, 45, 45, 45, 45, 45, 45], dtype=torch.float32).to(devices[0])
+    activity_weights = torch.tensor([2.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375], dtype=torch.float32).to(devices[0])
     loss_func3 = nn.CrossEntropyLoss(weight=activity_weights)
 
     best_state_dict = net.state_dict()
@@ -181,4 +182,4 @@ if __name__ == "__main__":
 
     net = Transformer()
 
-    pth_path = train(net, train_loader, val_loader, 0.0001, 300, 20, devices, output_save_path, logger)
+    pth_path = train(net, train_loader, val_loader, 0.001, 200, 100, devices, output_save_path, logger)
