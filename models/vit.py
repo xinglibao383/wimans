@@ -9,8 +9,8 @@ class VisionTransformer(torch.nn.Module):
         super(VisionTransformer, self).__init__()
 
         self.num_users = num_users
-        self.num_locations = num_locations
-        self.num_activities = num_activities
+        self.num_locations = num_locations + 1
+        self.num_activities = num_activities + 1
 
         self.resize_model = ResizeModel()
 
@@ -18,7 +18,7 @@ class VisionTransformer(torch.nn.Module):
         self.vit.heads = torch.nn.Identity()
         self.embed_dim = self.vit.conv_proj.out_channels
 
-        self.head1 = nn.Linear(self.embed_dim, self.num_users)
+        self.head1 = nn.Linear(self.embed_dim, self.num_users * 2)
         self.head2 = nn.Linear(self.embed_dim, self.num_users * self.num_locations)
         self.head3 = nn.Linear(self.embed_dim, self.num_users * self.num_activities)
 
@@ -28,9 +28,9 @@ class VisionTransformer(torch.nn.Module):
 
         x = self.vit(x)
 
-        y1, y2, y3 = torch.sigmoid(self.head1(x)), torch.sigmoid(self.head2(x)), torch.sigmoid(self.head3(x))
-        y2 = y2.view(batch_size, self.num_users, self.num_locations)
-        y3 = y3.view(batch_size, self.num_users, self.num_activities)
+        y1 = self.head1(x)
+        y2 = self.head2(x)
+        y3 = self.head3(x)
 
         return y1, y2, y3
 
