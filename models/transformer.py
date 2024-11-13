@@ -24,7 +24,7 @@ class Transformer(nn.Module):
         self.encoder = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.hidden_dim, nhead=nhead),
                                              num_layers=encoder_layers)
 
-        self.head1 = nn.Linear(hidden_dim, self.num_users)
+        self.head1 = nn.Linear(hidden_dim, self.num_users * 2)
         self.head2 = nn.Linear(hidden_dim, self.num_users * self.num_locations)
         self.head3 = nn.Linear(hidden_dim, self.num_users * self.num_activities)
 
@@ -49,12 +49,9 @@ class Transformer(nn.Module):
         x = self.encoder(x)
         x = x[-1, :, :]
 
-        y1 = torch.sigmoid(self.head1(x))
-        y2 = torch.sigmoid(self.head2(x))
-        y3 = torch.sigmoid(self.head3(x))
-
-        y2 = y2.view(x.size(0), self.num_users, self.num_locations)
-        y3 = y3.view(x.size(0), self.num_users, self.num_activities)
+        y1 = self.head1(x)
+        y2 = self.head2(x)
+        y3 = self.head3(x)
 
         return y1, y2, y3
 
