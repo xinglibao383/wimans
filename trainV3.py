@@ -6,6 +6,7 @@ from tools.accumulator import Accumulator
 from wimans_v2 import WiMANS, get_dataloaders
 from tools.logger import Logger
 from models.vit import VisionTransformer
+from models.transformer import Transformer
 
 
 def accuracy(y, y_hat):
@@ -22,18 +23,22 @@ def evaluate(net, data_iter, loss_func):
     device = next(iter(net.parameters())).device
     net.eval()
 
+    num_users = 6
+    num_locations = 5 + 1
+    num_activities = 9 + 1
+
     with torch.no_grad():
         for i, (x, y1, y2, y3) in enumerate(data_iter):
             batch_size, _ = y1.shape
             x, y1, y2, y3 = x.to(device), y1.to(device), y2.to(device), y3.to(device)
             y1_hat, y2_hat, y3_hat = net(x)
 
-            y1 = y1.view(batch_size * 6)
-            y2 = y2.view(batch_size * 6)
-            y3 = y3.view(batch_size * 6)
-            y1_hat = y1_hat.view(batch_size * 6, 2)
-            y2_hat = y2_hat.view(batch_size * 6, 5)
-            y3_hat = y3_hat.view(batch_size * 6, 9)
+            y1 = y1.view(batch_size * num_users)
+            y2 = y2.view(batch_size * num_users)
+            y3 = y3.view(batch_size * num_users)
+            y1_hat = y1_hat.view(batch_size * num_users, 2)
+            y2_hat = y2_hat.view(batch_size * num_users, num_locations)
+            y3_hat = y3_hat.view(batch_size * num_users, num_activities)
 
             loss1 = loss_func[0](y1_hat, y1)
             loss2 = loss_func[1](y2_hat, y2)
@@ -45,9 +50,9 @@ def evaluate(net, data_iter, loss_func):
             metric.add(loss.item() * batch_size,
                        loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
                        batch_size,
-                       identity_acc * batch_size * 6, location_acc * batch_size * 6,
-                       activity_acc * batch_size * 6,
-                       batch_size * 6)
+                       identity_acc * batch_size * num_users, location_acc * batch_size * num_users,
+                       activity_acc * batch_size * num_users,
+                       batch_size * num_users)
 
     return (metric[0] / metric[4],
             metric[1] / metric[4], metric[2] / metric[4], metric[3] / metric[4],
@@ -67,16 +72,20 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
 
     loss_func1 = nn.CrossEntropyLoss()
 
-    location_weights = torch.tensor([2, 10, 10, 10, 10], dtype=torch.float32)
+    location_weights = torch.tensor([2, 10, 10, 10, 10, 10], dtype=torch.float32).to(devices[0])
     loss_func2 = nn.CrossEntropyLoss(weight=location_weights)
 
-    activity_weights = torch.tensor([2, 45, 45, 45, 45, 45, 45, 45, 45, 45], dtype=torch.float32)
+    activity_weights = torch.tensor([2, 45, 45, 45, 45, 45, 45, 45, 45, 45], dtype=torch.float32).to(devices[0])
     loss_func3 = nn.CrossEntropyLoss(weight=activity_weights)
 
     best_state_dict = net.state_dict()
     min_eval_loss = float('inf')
     min_eval_loss_epoch = 0
     current_patience = 0
+
+    num_users = 6
+    num_locations = 5 + 1
+    num_activities = 9 + 1
 
     for epoch in range(num_epochs):
         # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数, 受试者数量
@@ -88,12 +97,12 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
             x, y1, y2, y3 = x.to(devices[0]), y1.to(devices[0]), y2.to(devices[0]), y3.to(devices[0])
             y1_hat, y2_hat, y3_hat = net(x)
 
-            y1 = y1.view(batch_size * 6)
-            y2 = y2.view(batch_size * 6)
-            y3 = y3.view(batch_size * 6)
-            y1_hat = y1_hat.view(batch_size * 6, 2)
-            y2_hat = y2_hat.view(batch_size * 6, 5)
-            y3_hat = y3_hat.view(batch_size * 6, 9)
+            y1 = y1.view(batch_size * num_users)
+            y2 = y2.view(batch_size * num_users)
+            y3 = y3.view(batch_size * num_users)
+            y1_hat = y1_hat.view(batch_size * num_users, 2)
+            y2_hat = y2_hat.view(batch_size * num_users, num_locations)
+            y3_hat = y3_hat.view(batch_size * num_users, num_activities)
 
             loss1 = loss_func1(y1_hat, y1)
             loss2 = loss_func2(y2_hat, y2)
@@ -109,8 +118,8 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
                 metric.add(loss.item() * batch_size,
                            loss1.item() * batch_size, loss2.item() * batch_size, loss3.item() * batch_size,
                            batch_size,
-                           identity_acc * batch_size * 6, location_acc * batch_size * 6, activity_acc * batch_size * 6,
-                           batch_size * 6)
+                           identity_acc * batch_size * num_users, location_acc * batch_size * num_users, activity_acc * batch_size * num_users,
+                           batch_size * num_users)
 
                 if i % 20 == 0:
                     train_loss, train_loss1, train_loss2, train_loss3 = (metric[0] / metric[4],
@@ -170,6 +179,6 @@ if __name__ == "__main__":
     dataset = WiMANS(root_path='/home/dataset/XLBWorkSpace/wimans')
     train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=32)
 
-    net = VisionTransformer()
+    net = Transformer()
 
     pth_path = train(net, train_loader, val_loader, 0.0001, 300, 20, devices, output_save_path, logger)

@@ -48,9 +48,9 @@ class WiMANS(Dataset):
         identity_label, location_label, activity_label = self.get_labels_from_csv(row_id)
 
         data = torch.tensor(data, dtype=torch.float32)
-        identity_label = torch.tensor(identity_label, dtype=torch.float32)
-        location_label = torch.tensor(location_label, dtype=torch.float32)
-        activity_label = torch.tensor(activity_label, dtype=torch.float32)
+        identity_label = torch.tensor(identity_label, dtype=torch.long)
+        location_label = torch.tensor(location_label, dtype=torch.long)
+        activity_label = torch.tensor(activity_label, dtype=torch.long)
 
         return data, identity_label, location_label, activity_label
 
