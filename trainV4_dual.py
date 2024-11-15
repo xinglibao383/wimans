@@ -68,7 +68,7 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
     # 在多个GPU上并行训练模型
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.25)
 
     identity_weights = torch.tensor([1.0, 1.375], dtype=torch.float32).to(devices[0])
     loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)
@@ -142,7 +142,7 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
                                                                                                    loss_func2,
                                                                                                    loss_func3])
         
-        # scheduler.step(eval_loss)
+        scheduler.step(eval_loss)
 
         logger.record([
             # f"Epoch: {epoch}, current patience: {current_patience + 1}, learning rate: {optimizer.param_groups[0]['lr']:.6f}",
@@ -184,6 +184,6 @@ if __name__ == "__main__":
                      nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True)
     train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=128)
 
-    net = MyModel(hidden_dim=1024)
+    net = MyModel(hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1)
 
-    pth_path = train(net, train_loader, val_loader, 0.0001, 1e-4, 300, 200, devices, output_save_path, logger)
+    pth_path = train(net, train_loader, val_loader, 0.001, 1e-4, 300, 50, devices, output_save_path, logger)
