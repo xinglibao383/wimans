@@ -69,7 +69,7 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
     # 在多个GPU上并行训练模型
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.5)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.5)
 
     identity_weights = torch.tensor([1.0, 1.375], dtype=torch.float32).to(devices[0])
     loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)
@@ -143,10 +143,11 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
                                                                                                    loss_func2,
                                                                                                    loss_func3])
         
-        scheduler.step(eval_loss)
+        # scheduler.step(eval_loss)
 
         logger.record([
-            f"Epoch: {epoch}, current patience: {current_patience + 1}, learning rate: {optimizer.param_groups[0]['lr']:.6f}",
+            # f"Epoch: {epoch}, current patience: {current_patience + 1}, learning rate: {optimizer.param_groups[0]['lr']:.6f}",
+            f'Epoch: {epoch}, current patience: {current_patience + 1}',
             f'train loss: {train_loss:.3f}, train identity loss: {train_loss1:.3f}, train location loss: {train_loss2:.3f}, train activity loss: {train_loss3:.3f}',
             f'train identity acc: {train_acc1:.3f}, train location acc: {train_acc2:.3f}, train activity acc: {train_acc3:.3f}',
             f'eval loss: {eval_loss:.3f}, eval identity loss: {eval_loss1:.3f}, eval location loss: {eval_loss2:.3f}, eval activity loss: {eval_loss3:.3f}',

@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -81,13 +82,40 @@ class WiMANS(Dataset):
         return identity_label, location_label, activity_label
 
 
-def get_dataloaders(dataset, batch_size, train_ratio=0.7, eval_ratio=0.1):
+def get_dataloaders_random_split(dataset, batch_size, train_ratio=0.7, eval_ratio=0.1):
     total_size = len(dataset)
     train_size = int(total_size * train_ratio)
     eval_size = int(total_size * eval_ratio)
     test_size = total_size - train_size - eval_size
 
     train_dataset, eval_dataset, test_dataset = random_split(dataset, [train_size, eval_size, test_size])
+
+    return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+            DataLoader(eval_dataset, batch_size=batch_size, shuffle=False),
+            DataLoader(test_dataset, batch_size=batch_size, shuffle=False))
+
+
+def get_dataloaders(dataset, batch_size, train_ratio=0.7, eval_ratio=0.1):
+    total_size = len(dataset)
+
+    train_size = int(total_size * train_ratio)
+    eval_size = int(total_size * eval_ratio)
+    test_size = total_size - train_size - eval_size
+
+    train_indices, eval_indices, test_indices = [], [], []
+
+    train_end = int(train_ratio * 10)
+    eval_end = int(train_ratio * 10) + int(eval_ratio * 10)
+    test_end = 10
+
+    for i in range(0, total_size, 10):
+        train_indices.extend(range(i, i + train_end))
+        eval_indices.extend(range(i + train_end, i + eval_end))
+        test_indices.extend(range(i + eval_end, i + test_end))
+
+    train_dataset = torch.utils.data.Subset(dataset, train_indices[:train_size])
+    eval_dataset = torch.utils.data.Subset(dataset, eval_indices[:eval_size])
+    test_dataset = torch.utils.data.Subset(dataset, test_indices[:test_size])
 
     return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
             DataLoader(eval_dataset, batch_size=batch_size, shuffle=False),
