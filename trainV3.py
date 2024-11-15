@@ -59,7 +59,7 @@ def evaluate(net, data_iter, loss_func):
             metric[5] / metric[8], metric[6] / metric[8], metric[7] / metric[8])
 
 
-def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devices, checkpoint_save_dir_path, logger):
+def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, patience, devices, checkpoint_save_dir_path, logger):
     def init_weights(m):
         if type(m) == nn.Linear or type(m) == nn.Conv2d:
             nn.init.xavier_uniform_(m.weight)
@@ -68,15 +68,16 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
 
     # 在多个GPU上并行训练模型
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+    optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.5)
 
-    identity_weights = torch.tensor([1.727, 2.375], dtype=torch.float32).to(devices[0])
+    identity_weights = torch.tensor([1.0, 1.375], dtype=torch.float32).to(devices[0])
     loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)
 
-    location_weights = torch.tensor([1.727, 11.505, 11.720, 12.058, 12.058, 12.058], dtype=torch.float32).to(devices[0])
+    location_weights = torch.tensor([1.0, 6.661, 6.754, 6.981, 6.981, 6.981], dtype=torch.float32).to(devices[0])
     loss_func2 = nn.CrossEntropyLoss(weight=location_weights)
 
-    activity_weights = torch.tensor([2.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375, 21.375], dtype=torch.float32).to(devices[0])
+    activity_weights = torch.tensor([1.0, 12.375, 12.375, 12.375, 12.375, 12.375, 12.375, 12.375, 12.375, 12.375], dtype=torch.float32).to(devices[0])
     loss_func3 = nn.CrossEntropyLoss(weight=activity_weights)
 
     best_state_dict = net.state_dict()
@@ -122,7 +123,7 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
                            identity_acc * batch_size * num_users, location_acc * batch_size * num_users, activity_acc * batch_size * num_users,
                            batch_size * num_users)
 
-                if i % 20 == 0:
+                if i % 10 == 0:
                     train_loss, train_loss1, train_loss2, train_loss3 = (metric[0] / metric[4],
                                                                          metric[1] / metric[4], metric[2] / metric[4],
                                                                          metric[3] / metric[4])
@@ -141,9 +142,11 @@ def train(net, train_iter, eval_iter, learning_rate, num_epochs, patience, devic
                                                                                                   [loss_func1,
                                                                                                    loss_func2,
                                                                                                    loss_func3])
+        
+        scheduler.step(eval_loss)
 
         logger.record([
-            f'Epoch: {epoch}, current patience: {current_patience + 1}',
+            f"Epoch: {epoch}, current patience: {current_patience + 1}, learning rate: {optimizer.param_groups[0]['lr']:.6f}",
             f'train loss: {train_loss:.3f}, train identity loss: {train_loss1:.3f}, train location loss: {train_loss2:.3f}, train activity loss: {train_loss3:.3f}',
             f'train identity acc: {train_acc1:.3f}, train location acc: {train_acc2:.3f}, train activity acc: {train_acc3:.3f}',
             f'eval loss: {eval_loss:.3f}, eval identity loss: {eval_loss1:.3f}, eval location loss: {eval_loss2:.3f}, eval activity loss: {eval_loss3:.3f}',
@@ -178,8 +181,8 @@ if __name__ == "__main__":
     devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
 
     dataset = WiMANS(root_path='/home/dataset/XLBWorkSpace/wimans')
-    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=32)
+    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=128)
 
     net = Transformer()
 
-    pth_path = train(net, train_loader, val_loader, 0.001, 200, 100, devices, output_save_path, logger)
+    pth_path = train(net, train_loader, val_loader, 0.0001, 1e-4, 300, 200, devices, output_save_path, logger)

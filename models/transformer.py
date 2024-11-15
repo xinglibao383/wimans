@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Transformer(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=512, nhead=8, encoder_layers=6,
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout=0.3,
                  num_users=6, num_locations=5, num_activities=9):
         super(Transformer, self).__init__()
 
@@ -15,6 +15,8 @@ class Transformer(nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.nhead = nhead
+
+        self.dropout = nn.Dropout(p=dropout)
 
         self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=2, padding=1)
@@ -35,9 +37,9 @@ class Transformer(nn.Module):
         # [batch_size, time_steps, transmitter * receiver * subcarrier] -> [batch_size, transmitter * receiver * subcarrier, time_steps]
         x = x.permute(0, 2, 1)
 
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
+        x = self.dropout(F.relu(self.conv1(x)))
+        x = self.dropout(F.relu(self.conv2(x)))
+        x = self.dropout(F.relu(self.conv3(x)))
 
         # [batch_size, transmitter * receiver * subcarrier, time_steps] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
         x = x.permute(0, 2, 1)
@@ -46,7 +48,7 @@ class Transformer(nn.Module):
         x = self.input_linear(x)
 
         x = x.permute(1, 0, 2)
-        x = self.encoder(x)
+        x = self.dropout(self.encoder(x))
         x = x[-1, :, :]
 
         y1 = self.head1(x)
