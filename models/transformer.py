@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Transformer(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout=0.3,
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=16, encoder_layers=6, dropout=0.3,
                  num_users=6, num_locations=5, num_activities=9):
         super(Transformer, self).__init__()
 

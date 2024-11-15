@@ -101,8 +101,8 @@ class MyModel(nn.Module):
         super(MyModel, self).__init__()
 
         self.num_users = num_users
-        self.num_locations = num_locations
-        self.num_activities = num_activities
+        self.num_locations = num_locations + 1
+        self.num_activities = num_activities + 1
 
         self.hidden_dim = hidden_dim * 2
 
