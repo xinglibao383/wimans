@@ -34,7 +34,7 @@ class ResNet(nn.Module):
         x = self.resnet(x)
         x = x.view(batch_size, -1)
 
-        return self.dropout(self.project(x))
+        return self.project(x)
 
     def get_project_in_features(self):
         x = torch.randn(1, 3, 224, 224)
@@ -79,7 +79,7 @@ class Transformer(nn.Module):
         x = self.input_linear(x)
 
         x = x.permute(1, 0, 2)
-        x = self.dropout(self.encoder(x))
+        x = self.encoder(x)
 
         return x[-1, :, :]
 

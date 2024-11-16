@@ -3,7 +3,7 @@ import datetime
 import torch
 from torch import nn
 from tools.accumulator import Accumulator
-from wimans_v3 import WiMANS, get_dataloaders
+from wimans_v3 import WiMANS, get_dataloaders, get_dataloaders_random_split
 from tools.logger import Logger
 from models.model_v1 import MyModel
 
@@ -58,7 +58,8 @@ def evaluate(net, data_iter, loss_func):
             metric[5] / metric[8], metric[6] / metric[8], metric[7] / metric[8])
 
 
-def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, patience, devices, checkpoint_save_dir_path, logger):
+def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, patience, 
+          devices, checkpoint_save_dir_path, logger, use_scheduler=False):
     def init_weights(m):
         if type(m) == nn.Linear or type(m) == nn.Conv2d:
             nn.init.xavier_uniform_(m.weight)
@@ -68,7 +69,8 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
     # 在多个GPU上并行训练模型
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.25)
+    if use_scheduler:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.25)
 
     identity_weights = torch.tensor([1.0, 1.375], dtype=torch.float32).to(devices[0])
     loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)
@@ -141,8 +143,8 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
                                                                                                   [loss_func1,
                                                                                                    loss_func2,
                                                                                                    loss_func3])
-        
-        scheduler.step(eval_loss)
+        if use_scheduler:
+            scheduler.step(eval_loss)
 
         logger.record([
             # f"Epoch: {epoch}, current patience: {current_patience + 1}, learning rate: {optimizer.param_groups[0]['lr']:.6f}",
@@ -181,9 +183,10 @@ if __name__ == "__main__":
     devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
 
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
-                     nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True)
-    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=128)
+                     nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True)
+    # train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=64)
+    train_loader, val_loader, test_loader = get_dataloaders_random_split(dataset, batch_size=64)
 
-    net = MyModel(hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1)
+    net = MyModel(hidden_dim=512, nhead=8, encoder_layers=64, dropout1=0.1, dropout2=0.1)
 
-    pth_path = train(net, train_loader, val_loader, 0.001, 1e-4, 300, 50, devices, output_save_path, logger)
+    pth_path = train(net, train_loader, val_loader, 0.0001, 1e-5, 300, 50, devices, output_save_path, logger)

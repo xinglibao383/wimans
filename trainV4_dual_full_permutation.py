@@ -19,7 +19,8 @@ def prepare():
 
 def train(nperseg, noverlap, nfft, window, remove_static, 
           hidden_dim, nhead, encoder_layers, dropout1, dropout2, 
-          learning_rate, weight_decay):
+          learning_rate, weight_decay, use_scheduler):
+    output_save_path, logger, devices = prepare()
     params = {
         'nperseg': nperseg,
         'noverlap': noverlap,
@@ -32,42 +33,167 @@ def train(nperseg, noverlap, nfft, window, remove_static,
         'dropout1': dropout1,
         'dropout2': dropout2,
         'learning_rate': learning_rate,
-        'weight_decay': weight_decay
+        'weight_decay': weight_decay,
+        'use_scheduler': use_scheduler
     }
     logger.record([f'Training parameters: {json.dumps(params, indent=4)}'])
     
-    output_save_path, logger, devices = prepare()
-
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
                      nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window, remove_static=remove_static)
     train_loader, val_loader, _ = trainV4_dual.get_dataloaders(dataset, batch_size=128)
 
     net = MyModel(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2)
 
-    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 300, 30, devices, output_save_path, logger)
+    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 300, 30, devices, output_save_path, logger, use_scheduler=use_scheduler)
     
 
 if __name__ == "__main__":
+    # BATCH1
     train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
     
     train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
 
     train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
     
     train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
     
     train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
     
     train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
           hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
-          learning_rate=0.001, weight_decay=1e-4)
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    # BATCH2
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+
+    # BATCH3
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.001, weight_decay=1e-4, use_scheduler=True)
+    
+    # BATCH4
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    # BATCH5
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.2, dropout2=0.2, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+
+    # BATCH6
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+    
+    train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+          hidden_dim=1024, nhead=16, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+          learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)

@@ -10,7 +10,7 @@ class WiMANS(Dataset):
     def __init__(self, root_path, nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False):
         self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft',
                                                 f'{nperseg}_{noverlap}_{nfft}_{window}_without_static' if remove_static else f'{nperseg}_{noverlap}_{nfft}_{window}_with_static')
-        self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'amp')
+        self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase')
         self.label_file_path = os.path.join(root_path, 'annotation.csv')
         self.num_users = 6
         self.num_locations = 5
