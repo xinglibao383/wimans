@@ -166,9 +166,40 @@ def train_batch3():
       train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+
+def train_batch4():
+      """
+      使用的是stft/*_with_static
+      相较于train_batch0，将hidden_dim从512调整到了256
+      """
+      train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+      
+      train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+
+      train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+      
+      train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+      
+      train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
+      
+      train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
 
 
 if __name__ == "__main__":
       train_batch1()
       train_batch2()
       train_batch3()
+      train_batch4()
