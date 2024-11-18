@@ -70,7 +70,7 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
     net = nn.DataParallel(net, device_ids=devices).to(devices[0])
     optimizer = torch.optim.AdamW(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
     if use_scheduler:
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.25)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.75)
 
     identity_weights = torch.tensor([1.0, 1.375], dtype=torch.float32).to(devices[0])
     loss_func1 = nn.CrossEntropyLoss(weight=identity_weights)

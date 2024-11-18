@@ -46,8 +46,12 @@ def train(nperseg, noverlap, nfft, window, remove_static,
 
     trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 500, 20, devices, output_save_path, logger, use_scheduler=use_scheduler)
     
-    
+
 def train_batch0():
+      """
+      20241118105818-20241118141624
+      使用的是stft/*_with_static
+      """
       train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
@@ -74,6 +78,10 @@ def train_batch0():
       
       
 def train_batch1():
+      """
+      使用的是stft/*_with_static
+      相较于train_batch0，将dropout从0.1调整到了0.3
+      """
       train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False)
@@ -100,6 +108,10 @@ def train_batch1():
       
 
 def train_batch2():
+      """
+      使用的是stft/*_with_static
+      相较于train_batch0，使用了scheduler：ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.75)
+      """
       train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
@@ -123,7 +135,40 @@ def train_batch2():
       train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1, 
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+
+def train_batch3():
+      """
+      使用的是stft/*_with_static
+      相较于train_batch0，将dropout从0.1调整到了0.3
+      相较于train_batch0，使用了scheduler：ReduceLROnPlateau(optimizer, mode='min', patience=10, factor=0.75)
+      """
+      train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+      train(nperseg=256, noverlap=64, nfft=512, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+
+      train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+      train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+      train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=False, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
+      
+      train(nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True, 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=True)
 
 
 if __name__ == "__main__":
-    train_batch1()
+      train_batch1()
+      train_batch2()
+      train_batch3()
