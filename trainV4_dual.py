@@ -184,9 +184,9 @@ if __name__ == "__main__":
 
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
                      nperseg=1024, noverlap=256, nfft=2048, window='hamming', remove_static=True)
-    # train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=64)
-    train_loader, val_loader, test_loader = get_dataloaders_random_split(dataset, batch_size=64)
+    train_loader, val_loader, test_loader = get_dataloaders(dataset, batch_size=64)
+    # train_loader, val_loader, test_loader = get_dataloaders_random_split(dataset, batch_size=64)
 
-    net = MyModel(hidden_dim=512, nhead=8, encoder_layers=64, dropout1=0.1, dropout2=0.1)
+    net = MyModel(hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.1, dropout2=0.1)
 
     pth_path = train(net, train_loader, val_loader, 0.0001, 1e-5, 300, 50, devices, output_save_path, logger)
