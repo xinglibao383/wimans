@@ -107,11 +107,11 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
             y2_hat = y2_hat.view(batch_size * num_users, num_locations)
             y3_hat = y3_hat.view(batch_size * num_users, num_activities)
 
-            loss1 = loss_func1(y1_hat, y1) * task[0]
-            loss2 = loss_func2(y2_hat, y2) * task[1]
-            loss3 = loss_func3(y3_hat, y3) * task[2]
+            loss1 = loss_func1(y1_hat, y1)
+            loss2 = loss_func2(y2_hat, y2)
+            loss3 = loss_func3(y3_hat, y3)
 
-            loss = loss1 + loss2 + loss3
+            loss = loss1 * task[0] + loss2 * task[1] + loss3 * task[2]
 
             loss.backward()
             optimizer.step()
