@@ -96,7 +96,7 @@ class FeatureExtractorV1(nn.Module):
 
 
 class MyModel(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, dropout3=0.3,
                  num_users=6, num_locations=5, num_activities=9):
         super(MyModel, self).__init__()
 
@@ -108,9 +108,28 @@ class MyModel(nn.Module):
 
         self.feature_extractor = FeatureExtractorV1(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2)
 
+        """
         self.head1 = nn.Linear(self.hidden_dim, self.num_users * 2)
         self.head2 = nn.Linear(self.hidden_dim, self.num_users * self.num_locations)
         self.head3 = nn.Linear(self.hidden_dim, self.num_users * self.num_activities)
+        """
+        self.head1 = nn.Linear(self.hidden_dim, self.num_users * 2)
+        self.head2 = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout3),
+            nn.Linear(self.hidden_dim // 2, self.num_users * self.num_locations),
+        )
+        self.head3 = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout3),
+            nn.Linear(self.hidden_dim // 2, self.hidden_dim // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout3),
+            nn.Linear(self.hidden_dim // 4, self.num_users * self.num_activities),
+        )
+
 
     def forward(self, x1, x2):
         x = self.feature_extractor(x1, x2)

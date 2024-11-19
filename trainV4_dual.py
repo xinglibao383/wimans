@@ -3,7 +3,7 @@ import datetime
 import torch
 from torch import nn
 from tools.accumulator import Accumulator
-from wimans_v3 import WiMANS, get_dataloaders, get_dataloaders_random_split
+from wimans_v3 import WiMANS, get_dataloaders, get_dataloaders_random_split, get_dataloaders_without_test
 from tools.logger import Logger
 from models.model_v1 import MyModel
 
@@ -59,7 +59,7 @@ def evaluate(net, data_iter, loss_func):
 
 
 def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, patience, 
-          devices, checkpoint_save_dir_path, logger, use_scheduler=False):
+          devices, checkpoint_save_dir_path, logger, use_scheduler=False, task=[True, True, True]):
     def init_weights(m):
         if type(m) == nn.Linear or type(m) == nn.Conv2d:
             nn.init.xavier_uniform_(m.weight)
@@ -107,9 +107,9 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
             y2_hat = y2_hat.view(batch_size * num_users, num_locations)
             y3_hat = y3_hat.view(batch_size * num_users, num_activities)
 
-            loss1 = loss_func1(y1_hat, y1)
-            loss2 = loss_func2(y2_hat, y2)
-            loss3 = loss_func3(y3_hat, y3)
+            loss1 = loss_func1(y1_hat, y1) * task[0]
+            loss2 = loss_func2(y2_hat, y2) * task[1]
+            loss3 = loss_func3(y3_hat, y3) * task[2]
 
             loss = loss1 + loss2 + loss3
 

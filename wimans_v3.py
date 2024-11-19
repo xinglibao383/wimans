@@ -7,9 +7,10 @@ import pandas as pd
 
 
 class WiMANS(Dataset):
-    def __init__(self, root_path, nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=False):
-        self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft',
-                                                f'{nperseg}_{noverlap}_{nfft}_{window}_without_static' if remove_static else f'{nperseg}_{noverlap}_{nfft}_{window}_with_static')
+    def __init__(self, root_path, nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, remove_noise=True):
+        noise = '_without_noise' if remove_noise else ''
+        static = '_without_static' if remove_static else '_with_static'
+        self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft', f'{nperseg}_{noverlap}_{nfft}_{window}{noise}{static}')
         # phase_unwrapped is better than phase
         # self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase')
         self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase_unwrapped')
@@ -127,11 +128,30 @@ def get_dataloaders(dataset, batch_size, train_ratio=0.7, eval_ratio=0.1):
     return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
             DataLoader(eval_dataset, batch_size=batch_size, shuffle=False),
             DataLoader(test_dataset, batch_size=batch_size, shuffle=False))
+    
+    
+def get_dataloaders_without_test(dataset, batch_size, train_ratio=0.8):
+    total_size = len(dataset)
+    train_end, eval_end = int(train_ratio * 10), 10
+    train_indices, eval_indices = [], []
+
+    for i in range(0, total_size, 10):
+        train_indices.extend(range(i, i + train_end))
+        eval_indices.extend(range(i + train_end, i + eval_end))
+        
+    train_indices = [num for num in train_indices if num < total_size]
+    eval_indices = [num for num in eval_indices if num < total_size]
+
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    eval_dataset = torch.utils.data.Subset(dataset, eval_indices)
+
+    return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+            DataLoader(eval_dataset, batch_size=batch_size, shuffle=False))
 
 
 if __name__ == "__main__":
-    dataset = WiMANS(root_path=r'E:\WorkSpace\WiMANS\dataset')
-    train_loader, eval_loader, test_loader = get_dataloaders(dataset, batch_size=32)
+    dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans')
+    train_loader, eval_loader, test_loader = get_dataloaders(dataset, batch_size=32, train_ratio=0.8, eval_ratio=0.2)
 
     for batch_idx, (csi, spectra, identity_label, location_label, activity_label) in enumerate(train_loader):
         print(f"Train Batch {batch_idx + 1}")
