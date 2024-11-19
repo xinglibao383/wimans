@@ -130,7 +130,7 @@ def get_dataloaders(dataset, batch_size, train_ratio=0.7, eval_ratio=0.1):
             DataLoader(test_dataset, batch_size=batch_size, shuffle=False))
     
     
-def get_dataloaders_without_test(dataset, batch_size, train_ratio=0.8):
+def get_dataloaders_without_test(dataset, batch_size, train_ratio=0.7):
     total_size = len(dataset)
     train_end, eval_end = int(train_ratio * 10), 10
     train_indices, eval_indices = [], []
