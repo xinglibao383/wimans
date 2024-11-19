@@ -120,14 +120,16 @@ class Transformer(nn.Module):
     
 
 class TemporalFusionTransformer(nn.Module):
-    def __init__(self, seq_len, input_dim, hidden_dim, output_dim, num_layers=2, dropout=0.3, attention_heads=4):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=2, dropout=0.3, attention_heads=4):
         super(TemporalFusionTransformer, self).__init__()
         
-        self.seq_len = seq_len
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.num_layers = num_layers
         self.attention_heads = attention_heads
+
+        self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
 
         self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
         self.multihead_attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=attention_heads, batch_first=True)
@@ -139,7 +141,13 @@ class TemporalFusionTransformer(nn.Module):
         batch_size, time_steps, _, _, _ = x.shape
         # [batch_size, time_steps, transmitter, receiver, subcarrier] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
         x = x.view(batch_size, time_steps, -1)
-        # [batch_size, seq_len, input_dim] -> [batch_size, seq_len, hidden_dim]
+        # [batch_size, time_steps, transmitter * receiver * subcarrier] -> [batch_size, transmitter * receiver * subcarrier, time_steps]
+        x = x.permute(0, 2, 1)
+        x = self.dropout(F.relu(self.conv1(x)))
+        x = self.dropout(F.relu(self.conv2(x)))
+        # [batch_size, transmitter * receiver * subcarrier, time_steps] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
+        x = x.permute(0, 2, 1)
+
         lstm_out, _ = self.lstm(x)
         attention_out, _ = self.multihead_attention(lstm_out, lstm_out, lstm_out)
         attention_out = self.dropout(attention_out)
@@ -158,7 +166,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
 
         if feature_extractor1_name == 'temporal_fusion_transformer':
-            self.feature_extractor1 = TemporalFusionTransformer(3000, input_dim, hidden_dim*2, hidden_dim, encoder_layers, dropout1, nhead)
+            self.feature_extractor1 = TemporalFusionTransformer(input_dim, hidden_dim, hidden_dim, int(encoder_layers / 4 * 3), dropout1, nhead)
         elif feature_extractor1_name == 'transformer':
             self.feature_extractor1 = Transformer(input_dim, hidden_dim, nhead, encoder_layers, dropout1)
 

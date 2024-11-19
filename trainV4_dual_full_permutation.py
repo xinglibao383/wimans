@@ -47,7 +47,7 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
     
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
                      nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window, remove_static=remove_static, remove_noise=remove_noise)
-    train_loader, val_loader = trainV4_dual.get_dataloaders_without_test(dataset, batch_size=128)
+    train_loader, val_loader = trainV4_dual.get_dataloaders_without_test(dataset, batch_size=64)
 
     # net = MyModelV1(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3)
     net = MyModelV2(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3, 
@@ -61,4 +61,4 @@ if __name__ == "__main__":
       train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
             hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
-            feature_extractor1_name='transformer', feature_extractor2_name='swin_transformer')
+            feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='swin_transformer')
