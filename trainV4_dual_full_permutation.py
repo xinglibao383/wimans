@@ -53,5 +53,5 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
 
 if __name__ == "__main__":
       train(nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
-            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.5, dropout2=0.5, dropout3=0.5,
-            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task=[False, False, True])
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3')

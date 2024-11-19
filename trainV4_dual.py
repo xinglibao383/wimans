@@ -16,8 +16,8 @@ def compute_three_accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat):
     return accuracy(y1, y1_hat), accuracy(y2, y2_hat), accuracy(y3, y3_hat)
 
 
-def evaluate(net, data_iter, loss_func):
-    # 训练损失之和, y1训练损失之和, y2训练损失之和, y3训练损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数, 受试者数量
+def evaluate(net, data_iter, loss_func, task='123'):
+    # 验证损失之和, y1验证损失之和, y2验证损失之和, y3验证损失之和, 样本数, y1正确预测的样本数, y2正确预测的样本数, y3正确预测的样本数, 受试者数量
     metric = Accumulator(9)
     device = next(iter(net.parameters())).device
     net.eval()
@@ -43,7 +43,10 @@ def evaluate(net, data_iter, loss_func):
             loss2 = loss_func[1](y2_hat, y2)
             loss3 = loss_func[2](y3_hat, y3)
 
-            loss = loss1 + loss2 + loss3
+            if task == '123':
+                loss = loss1 + loss2 + loss3
+            elif task == '3':
+                loss = loss3
 
             identity_acc, location_acc, activity_acc = compute_three_accuracy(y1, y2, y3, y1_hat, y2_hat, y3_hat)
             metric.add(loss.item() * batch_size,
@@ -59,7 +62,7 @@ def evaluate(net, data_iter, loss_func):
 
 
 def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, patience, 
-          devices, checkpoint_save_dir_path, logger, use_scheduler=False, task=[True, True, True]):
+          devices, checkpoint_save_dir_path, logger, use_scheduler=False, task='123'):
     def init_weights(m):
         if type(m) == nn.Linear or type(m) == nn.Conv2d:
             nn.init.xavier_uniform_(m.weight)
@@ -110,8 +113,11 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
             loss1 = loss_func1(y1_hat, y1)
             loss2 = loss_func2(y2_hat, y2)
             loss3 = loss_func3(y3_hat, y3)
-
-            loss = loss1 * task[0] + loss2 * task[1] + loss3 * task[2]
+            
+            if task == '123':
+                loss = loss1 + loss2 + loss3
+            elif task == '3':
+                loss = loss3
 
             loss.backward()
             optimizer.step()
@@ -142,7 +148,7 @@ def train(net, train_iter, eval_iter, learning_rate, weight_decay, num_epochs, p
         eval_loss, eval_loss1, eval_loss2, eval_loss3, eval_acc1, eval_acc2, eval_acc3 = evaluate(net, eval_iter,
                                                                                                   [loss_func1,
                                                                                                    loss_func2,
-                                                                                                   loss_func3])
+                                                                                                   loss_func3], task)
         if use_scheduler:
             scheduler.step(eval_loss)
 
