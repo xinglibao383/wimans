@@ -61,4 +61,39 @@ if __name__ == "__main__":
       train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
             hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='transformer', feature_extractor2_name='resnet')
+      
+      train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='transformer', feature_extractor2_name='swin_transformer')
+      
+      train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
             feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='swin_transformer')
+      
+      train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='resnet')
+      
+      train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='transformer', feature_extractor2_name='resnet')
+      
+      train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='transformer', feature_extractor2_name='swin_transformer')
+      
+      train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='swin_transformer')
+      
+      train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
+            feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='resnet')

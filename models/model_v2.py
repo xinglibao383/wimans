@@ -2,6 +2,7 @@ import torch
 import timm
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
 
 
 class ResNet(nn.Module):
