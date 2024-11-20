@@ -52,7 +52,7 @@ class ResNet(nn.Module):
 class SwinTransformer(nn.Module):
     def __init__(self, hidden_dim=1024, dropout=0.3, backbone='swin_base_patch4_window7_224'):
         super(SwinTransformer, self).__init__()
-        
+
         self.conv1 = nn.Conv2d(in_channels=270, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1)
@@ -64,10 +64,10 @@ class SwinTransformer(nn.Module):
         self.swin_transformer = timm.create_model(backbone, pretrained=False)
         self.swin_transformer.head = nn.Linear(self.swin_transformer.head.in_features, hidden_dim)
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
-        
+
     def forward(self, x):
         x = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
-        
+
         x = self.dropout(F.relu(self.conv1(x)))
         x = self.dropout(F.relu(self.conv2(x)))
         x = self.dropout(F.relu(self.conv3(x)))
@@ -118,12 +118,12 @@ class Transformer(nn.Module):
         x = self.encoder(x)
 
         return x.mean(dim=0)
-    
+
 
 class TemporalFusionTransformer(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers=2, dropout=0.3, attention_heads=4):
         super(TemporalFusionTransformer, self).__init__()
-        
+
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.num_layers = num_layers
@@ -133,7 +133,8 @@ class TemporalFusionTransformer(nn.Module):
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
 
         self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
-        self.multihead_attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=attention_heads, batch_first=True)
+        self.multihead_attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=attention_heads,
+                                                         batch_first=True)
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(hidden_dim)
         self.fc = nn.Linear(hidden_dim, output_dim)
@@ -157,17 +158,18 @@ class TemporalFusionTransformer(nn.Module):
         # [batch_size, seq_len, hidden_dim] -> [batch_size, hidden_dim]
         output = combined.mean(dim=1)
         # [batch_size, hidden_dim] -> [batch_size, output_dim]
-        output = self.fc(output)  
+        output = self.fc(output)
         return output
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, 
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
                  feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='transformer'):
         super(FeatureExtractor, self).__init__()
 
         if feature_extractor1_name == 'temporal_fusion_transformer':
-            self.feature_extractor1 = TemporalFusionTransformer(input_dim, hidden_dim, hidden_dim, int(encoder_layers / 4 * 3), dropout1, nhead)
+            self.feature_extractor1 = TemporalFusionTransformer(input_dim, hidden_dim, hidden_dim,
+                                                                int(encoder_layers / 4 * 3), dropout1, nhead)
         elif feature_extractor1_name == 'transformer':
             self.feature_extractor1 = Transformer(input_dim, hidden_dim, nhead, encoder_layers, dropout1)
 
@@ -181,8 +183,9 @@ class FeatureExtractor(nn.Module):
 
 
 class MyModel(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, dropout3=0.3,
-                 num_users=6, num_locations=5, num_activities=9, 
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
+                 dropout3=0.3,
+                 num_users=6, num_locations=5, num_activities=9,
                  feature_extractor1_name='transformer', feature_extractor2_name='swin-transformer'):
         super(MyModel, self).__init__()
 
@@ -192,7 +195,7 @@ class MyModel(nn.Module):
 
         self.hidden_dim = hidden_dim * 2
 
-        self.feature_extractor = FeatureExtractor(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2, 
+        self.feature_extractor = FeatureExtractor(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2,
                                                   feature_extractor1_name, feature_extractor2_name)
 
         """
@@ -216,7 +219,6 @@ class MyModel(nn.Module):
             nn.Dropout(dropout3),
             nn.Linear(self.hidden_dim // 4, self.num_users * self.num_activities),
         )
-
 
     def forward(self, x1, x2):
         x = self.feature_extractor(x1, x2)
