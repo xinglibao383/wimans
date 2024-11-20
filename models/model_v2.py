@@ -15,8 +15,12 @@ class ResNet(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=270, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.conv5 = nn.Conv2d(in_channels=16, out_channels=3, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, stride=1, padding=1)
+        
+        self.bn1 = nn.BatchNorm2d(128)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(3)
 
         self.dropout = nn.Dropout(p=dropout)
 
@@ -32,16 +36,24 @@ class ResNet(nn.Module):
         if self.interpolate:
             x = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
 
-        x = self.dropout(F.relu(self.conv1(x)))
-        x = self.dropout(F.relu(self.conv2(x)))
-        x = self.dropout(F.relu(self.conv3(x)))
-        x = self.dropout(F.relu(self.conv4(x)))
-        x = self.dropout(F.relu(self.conv5(x)))
+        """
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        """
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
 
         x = self.resnet(x)
         x = x.view(batch_size, -1)
+        
+        x = self.project(x)
+        x = self.dropout(x)
 
-        return self.project(x)
+        return x
 
     def get_project_in_features(self):
         x = torch.randn(1, 3, 224, 224)
@@ -57,8 +69,12 @@ class SwinTransformer(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=270, out_channels=128, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.conv5 = nn.Conv2d(in_channels=16, out_channels=3, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, stride=1, padding=1)
+        
+        self.bn1 = nn.BatchNorm2d(128)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(3)
 
         self.dropout = nn.Dropout(p=dropout)
 
@@ -69,13 +85,19 @@ class SwinTransformer(nn.Module):
     def forward(self, x):
         x = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
 
-        x = self.dropout(F.relu(self.conv1(x)))
-        x = self.dropout(F.relu(self.conv2(x)))
-        x = self.dropout(F.relu(self.conv3(x)))
-        x = self.dropout(F.relu(self.conv4(x)))
-        x = self.dropout(F.relu(self.conv5(x)))
-
+        """
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        """
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+        
         x = self.swin_transformer(x)
+        x = self.dropout(x)
         x = x.permute(0, 3, 1, 2)
         x = self.pool(x)
         x = torch.flatten(x, 1)
@@ -94,6 +116,9 @@ class Transformer(nn.Module):
 
         self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
+        
+        self.bn1 = nn.BatchNorm2d(512)
+        self.bn2 = nn.BatchNorm2d(270)
 
         self.input_linear = nn.Linear(input_dim, hidden_dim)
         # todo xinglibao: max_len should be computed, and is affected by conv1 and conv2
@@ -108,14 +133,15 @@ class Transformer(nn.Module):
         # [batch_size, time_steps, transmitter * receiver * subcarrier] -> [batch_size, transmitter * receiver * subcarrier, time_steps]
         x = x.permute(0, 2, 1)
 
-        x = self.dropout(F.relu(self.conv1(x)))
-        x = self.dropout(F.relu(self.conv2(x)))
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
 
         # [batch_size, transmitter * receiver * subcarrier, time_steps] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
         x = x.permute(0, 2, 1)
 
         # [batch_size, time_steps, input_dim=270] -> [batch_size, time_steps, hidden_dim]
         x = self.input_linear(x)
+        x = self.dropout(x)
 
         if self.positional_encoding is not None:
             x = self.positional_encoding(x)
@@ -167,20 +193,20 @@ class TemporalFusionTransformer(nn.Module):
         x = x.view(batch_size, time_steps, -1)
         # [batch_size, time_steps, transmitter * receiver * subcarrier] -> [batch_size, transmitter * receiver * subcarrier, time_steps]
         x = x.permute(0, 2, 1)
-        x = self.dropout(F.relu(self.conv1(x)))
-        x = self.dropout(F.relu(self.conv2(x)))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
         # [batch_size, transmitter * receiver * subcarrier, time_steps] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
         x = x.permute(0, 2, 1)
 
         lstm_out, _ = self.lstm(x)
         attention_out, _ = self.multihead_attention(lstm_out, lstm_out, lstm_out)
-        attention_out = self.dropout(attention_out)
         # Residual connection: Combine LSTM and Attention outputs
         combined = self.layer_norm(lstm_out + attention_out)
         # [batch_size, seq_len, hidden_dim] -> [batch_size, hidden_dim]
         output = combined.mean(dim=1)
         # [batch_size, hidden_dim] -> [batch_size, output_dim]
         output = self.fc(output)
+        x = self.dropout(x)
         return output
 
 
