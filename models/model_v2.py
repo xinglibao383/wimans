@@ -1,3 +1,4 @@
+import math
 import torch
 import timm
 import torch.nn as nn
@@ -82,7 +83,7 @@ class SwinTransformer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout=0.3):
+    def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout=0.3, with_positional=False):
         super(Transformer, self).__init__()
 
         self.input_dim = input_dim
@@ -95,6 +96,8 @@ class Transformer(nn.Module):
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
 
         self.input_linear = nn.Linear(input_dim, hidden_dim)
+        # todo xinglibao: max_len should be computed, and is affected by conv1 and conv2
+        self.positional_encoding = PositionalEncoding(hidden_dim, max_len=750) if with_positional else None
         self.encoder = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=self.hidden_dim, nhead=nhead),
                                              num_layers=encoder_layers)
 
@@ -114,10 +117,29 @@ class Transformer(nn.Module):
         # [batch_size, time_steps, input_dim=270] -> [batch_size, time_steps, hidden_dim]
         x = self.input_linear(x)
 
+        if self.positional_encoding is not None:
+            x = self.positional_encoding(x)
+
         x = x.permute(1, 0, 2)
         x = self.encoder(x)
 
         return x.mean(dim=0)
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, hidden_dim, max_len):
+        super(PositionalEncoding, self).__init__()
+
+        pe = torch.zeros(max_len, hidden_dim)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, hidden_dim, 2) * -(math.log(10000.0) / hidden_dim))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe.unsqueeze(0))
+
+    def forward(self, x):
+        # x shape: [batch_size, time_steps, hidden_dim]
+        return x + self.pe[:, :x.size(1), :]
 
 
 class TemporalFusionTransformer(nn.Module):
