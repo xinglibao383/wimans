@@ -117,8 +117,8 @@ class Transformer(nn.Module):
         self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
         
-        self.bn1 = nn.BatchNorm2d(512)
-        self.bn2 = nn.BatchNorm2d(270)
+        self.bn1 = nn.BatchNorm1d(512)
+        self.bn2 = nn.BatchNorm1d(270)
 
         self.input_linear = nn.Linear(input_dim, hidden_dim)
         # todo xinglibao: max_len should be computed, and is affected by conv1 and conv2
@@ -179,6 +179,9 @@ class TemporalFusionTransformer(nn.Module):
 
         self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
+        
+        self.bn1 = nn.BatchNorm1d(512)
+        self.bn2 = nn.BatchNorm1d(270)
 
         self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
         self.multihead_attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=attention_heads,
@@ -193,8 +196,8 @@ class TemporalFusionTransformer(nn.Module):
         x = x.view(batch_size, time_steps, -1)
         # [batch_size, time_steps, transmitter * receiver * subcarrier] -> [batch_size, transmitter * receiver * subcarrier, time_steps]
         x = x.permute(0, 2, 1)
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
         # [batch_size, transmitter * receiver * subcarrier, time_steps] -> [batch_size, time_steps, transmitter * receiver * subcarrier]
         x = x.permute(0, 2, 1)
 
