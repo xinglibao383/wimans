@@ -186,14 +186,15 @@ class TemporalFusionTransformer(nn.Module):
 
 class FeatureExtractor(nn.Module):
     def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
-                 feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='transformer'):
+                 feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
+                 transformer_with_positional=False):
         super(FeatureExtractor, self).__init__()
 
         if feature_extractor1_name == 'temporal_fusion_transformer':
             self.feature_extractor1 = TemporalFusionTransformer(input_dim, hidden_dim, hidden_dim,
                                                                 int(encoder_layers / 4 * 3), dropout1, nhead)
         elif feature_extractor1_name == 'transformer':
-            self.feature_extractor1 = Transformer(input_dim, hidden_dim, nhead, encoder_layers, dropout1)
+            self.feature_extractor1 = Transformer(input_dim, hidden_dim, nhead, encoder_layers, dropout1, transformer_with_positional)
 
         if feature_extractor2_name == 'swin_transformer':
             self.feature_extractor2 = SwinTransformer(hidden_dim, dropout2)
@@ -208,7 +209,8 @@ class MyModel(nn.Module):
     def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
                  dropout3=0.3,
                  num_users=6, num_locations=5, num_activities=9,
-                 feature_extractor1_name='transformer', feature_extractor2_name='swin-transformer'):
+                 feature_extractor1_name='transformer', feature_extractor2_name='swin-transformer', 
+                 transformer_with_positional=False):
         super(MyModel, self).__init__()
 
         self.num_users = num_users
@@ -218,7 +220,8 @@ class MyModel(nn.Module):
         self.hidden_dim = hidden_dim * 2
 
         self.feature_extractor = FeatureExtractor(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2,
-                                                  feature_extractor1_name, feature_extractor2_name)
+                                                  feature_extractor1_name, feature_extractor2_name, 
+                                                  transformer_with_positional)
 
         """
         self.head1 = nn.Linear(self.hidden_dim, self.num_users * 2)
