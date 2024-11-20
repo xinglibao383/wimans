@@ -53,7 +53,7 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
     net = MyModelV2(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3, 
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name)
 
-    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 500, 50, 
+    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 500, 30, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)
     
 

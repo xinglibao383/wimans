@@ -117,7 +117,7 @@ class Transformer(nn.Module):
         x = x.permute(1, 0, 2)
         x = self.encoder(x)
 
-        return x[-1, :, :]
+        return x.mean(dim=0)
     
 
 class TemporalFusionTransformer(nn.Module):
