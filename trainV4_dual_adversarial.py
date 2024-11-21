@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
     nperseg, noverlap, nfft, window, remove_static, remove_noise = 512, 384, 1024, 'hamming', True, True
     hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3, dropout4 = 1024, 8, 8, 0.4, 0.4, 0.4, 0.4
-    batch_size, learning_rate1, learning_rate2, weight_decay, task = 32, 0.0001, 0.0001, 1e-3, '3'
+    batch_size, learning_rate1, learning_rate2, weight_decay, task = 16, 0.0001, 0.0001, 1e-3, '3'
     feature_extractor1_name, feature_extractor2_name = 'transformer', 'resnet'
     transformer_with_positional, lambda_d = True, 0.1
     num_epochs, patience = 1000, 200
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         'num_epochs': num_epochs,
         'patience': patience
     }
-    logger.record([f'Training parameters: {json.dumps(params, indent=4)}'])
+    logger.record([f'Adversarial training parameters: {json.dumps(params, indent=4)}'])
 
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans',
                      nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window,

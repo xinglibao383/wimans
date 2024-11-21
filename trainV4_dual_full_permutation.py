@@ -56,7 +56,7 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name, 
                     transformer_with_positional = transformer_with_positional)
 
-    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 1000, 200, 
+    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 1000, 300, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)
     
     
