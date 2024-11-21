@@ -56,7 +56,7 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name, 
                     transformer_with_positional = transformer_with_positional)
 
-    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 1000, 30, 
+    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 1000, 200, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)
     
     
@@ -102,8 +102,8 @@ def train_batch():
             feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='resnet')
       
 def train_sigle():
-      train(nperseg=512, noverlap=256, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
-            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.1,
+      train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
+            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.3, dropout2=0.3, dropout3=0.3,
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
             feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
             transformer_with_positional=True)
