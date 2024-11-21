@@ -190,8 +190,9 @@ class DomainDiscriminator(nn.Module):
             nn.Linear((self.hidden_dim - self.num_domain) // 4, self.num_domain),
         )
 
-    def forward(self, x):
-        return self.head(x)
+    def forward(self, x, domain):
+        domain_float = domain.to(torch.float32)
+        return self.head(torch.cat((x, domain_float), dim=1))
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ def accuracy(y, y_hat):
 
 
 def compute_four_accuracy(y1, y2, y3, domain, y1_hat, y2_hat, y3_hat, domain_hat):
-    return accuracy(y1, y1_hat), accuracy(y2, y2_hat), accuracy(y3, y3_hat), accuracy(domain, domain_hat)
+    return accuracy(y1, y1_hat), accuracy(y2, y2_hat), accuracy(y3, y3_hat), accuracy(torch.argmax(domain.clone(), dim=1), domain_hat)
 
 
 def evaluate(feature_extractor, classifier, domain_discriminator,
@@ -50,8 +50,8 @@ def evaluate(feature_extractor, classifier, domain_discriminator,
             loss2 = loss_func[1](y2_hat, y2)
             loss3 = loss_func[2](y3_hat, y3)
 
-            domain_hat = domain_discriminator(x)
-            loss4 = loss_func[4](domain_hat, domain)
+            domain_hat = domain_discriminator(x, domain)
+            loss4 = loss_func[3](domain_hat, torch.argmax(domain.clone(), dim=1))
 
             if task == '123':
                 loss = loss1 + loss2 + loss3 - lambda_d * loss4
@@ -127,16 +127,15 @@ def train(feature_extractor, classifier, domain_discriminator,
 
             domain_discriminator.zero_grad()
             x = feature_extractor(x1, x2)
-            domain_hat = domain_discriminator(x.detach())  # 不计算梯度
-            loss_d = loss_func4(domain_hat, domain)
+            domain_hat = domain_discriminator(x.detach(), domain)  # 不计算梯度
+            loss_d = loss_func4(domain_hat, torch.argmax(domain.clone(), dim=1))
             loss_d.backward()
             optimizer_d.step()
-
             feature_extractor.zero_grad()
             classifier.zero_grad()
             x = feature_extractor(x1, x2)
             y1_hat, y2_hat, y3_hat = classifier(x)
-            domain_hat = domain_discriminator(x)
+            domain_hat = domain_discriminator(x, domain)
 
             y1 = y1.view(batch_size * num_users)
             y2 = y2.view(batch_size * num_users)
@@ -148,7 +147,7 @@ def train(feature_extractor, classifier, domain_discriminator,
             loss1 = loss_func1(y1_hat, y1)
             loss2 = loss_func2(y2_hat, y2)
             loss3 = loss_func3(y3_hat, y3)
-            loss4 = loss_func4(domain_hat, domain)
+            loss4 = loss_func4(domain_hat, torch.argmax(domain.clone(), dim=1))
 
             if task == '123':
                 loss = loss1 + loss2 + loss3 - lambda_d * loss4
@@ -233,7 +232,7 @@ if __name__ == "__main__":
 
     nperseg, noverlap, nfft, window, remove_static, remove_noise = 512, 384, 1024, 'hamming', True, True
     hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3, dropout4 = 1024, 8, 8, 0.4, 0.4, 0.4, 0.4
-    batch_size, learning_rate1, learning_rate2, weight_decay, task = 64, 0.0001, 0.0001, 1e-3, '3'
+    batch_size, learning_rate1, learning_rate2, weight_decay, task = 32, 0.0001, 0.0001, 1e-3, '3'
     feature_extractor1_name, feature_extractor2_name = 'transformer', 'resnet'
     transformer_with_positional, lambda_d = True, 0.1
     num_epochs, patience = 1000, 200
@@ -269,7 +268,7 @@ if __name__ == "__main__":
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans',
                      nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window,
                      remove_static=remove_static, remove_noise=remove_noise)
-    train_loader, val_loader, test_loader = get_dataloaders_without_test(dataset, batch_size=batch_size)
+    train_loader, val_loader = get_dataloaders_without_test(dataset, batch_size=batch_size)
 
     feature_extractor = FeatureExtractor(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers,
                                          dropout1=dropout1, dropout2=dropout2,
