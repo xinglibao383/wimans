@@ -2,7 +2,7 @@ import os
 import json
 import datetime
 import torch
-from wimans_v3 import WiMANS, get_dataloaders
+from wimans_v3 import WiMANS, get_dataloaders_without_test_v2
 from tools.logger import Logger
 from models.model_v1 import MyModel as MyModelV1
 from models.model_v2 import MyModel as MyModelV2
@@ -49,14 +49,14 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
     
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
                      nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window, remove_static=remove_static, remove_noise=remove_noise)
-    train_loader, val_loader = trainV4_dual.get_dataloaders_without_test(dataset, batch_size=64)
+    train_loader, val_loader = get_dataloaders_without_test_v2(dataset, batch_size=128)
 
     # net = MyModelV1(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3)
     net = MyModelV2(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3, 
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name, 
                     transformer_with_positional = transformer_with_positional)
 
-    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 1000, 300, 
+    trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 2000, 1000, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)
     
     
@@ -103,8 +103,8 @@ def train_batch():
       
 def train_sigle():
       train(nperseg=512, noverlap=384, nfft=1024, window='hamming', remove_static=True, remove_noise=True, 
-            hidden_dim=1024, nhead=8, encoder_layers=8, dropout1=0.4, dropout2=0.4, dropout3=0.4,
-            learning_rate=0.0001, weight_decay=1e-3, use_scheduler=False, task='3', 
+            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3, dropout3=0.3,
+            learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='123', 
             feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
             transformer_with_positional=True)
     

@@ -1,5 +1,6 @@
 import os
 import math
+import random
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -144,6 +145,27 @@ def get_dataloaders_without_test(dataset, batch_size, train_ratio=0.7):
 
     train_dataset = torch.utils.data.Subset(dataset, train_indices)
     eval_dataset = torch.utils.data.Subset(dataset, eval_indices)
+
+    return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+            DataLoader(eval_dataset, batch_size=batch_size, shuffle=False))
+    
+
+def get_dataloaders_without_test_v2(dataset, batch_size, train_ratio=0.7, base=9):
+    length = len(dataset)
+    train = int(base * train_ratio)
+    list1, list2 = [], []
+    
+    for i in range(0, length, base):
+        sub_list = list(range(i, i + base))
+        random.shuffle(sub_list)
+        list1.extend(sub_list[:train])
+        list2.extend(sub_list[train:])
+        
+    list1 = [x for x in list1 if x < length]
+    list2 = [x for x in list2 if x < length]
+
+    train_dataset = torch.utils.data.Subset(dataset, list1)
+    eval_dataset = torch.utils.data.Subset(dataset, list2)
 
     return (DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
             DataLoader(eval_dataset, batch_size=batch_size, shuffle=False))

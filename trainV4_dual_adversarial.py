@@ -170,7 +170,7 @@ def train(feature_extractor, classifier, domain_discriminator,
                            activity_acc * batch_size * num_users, domain_acc * batch_size,
                            batch_size * num_users)
 
-                if i % 10 == 0:
+                if i % 30 == 0:
                     train_loss, train_loss1, train_loss2, train_loss3, train_loss4 = (metric[0] / metric[5],
                                                                                       metric[1] / metric[5],
                                                                                       metric[2] / metric[5],
@@ -228,14 +228,15 @@ if __name__ == "__main__":
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     output_save_path = os.path.join('./', 'outputs', timestamp)
     logger = Logger(save_path=output_save_path)
-    devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
+    # devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2'), torch.device('cuda:3')]
+    devices = [torch.device('cuda:0'), torch.device('cuda:1'), torch.device('cuda:2')]
 
     nperseg, noverlap, nfft, window, remove_static, remove_noise = 512, 384, 1024, 'hamming', True, True
-    hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3, dropout4 = 1024, 8, 8, 0.4, 0.4, 0.4, 0.4
-    batch_size, learning_rate1, learning_rate2, weight_decay, task = 16, 0.0001, 0.0001, 1e-3, '3'
+    hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3, dropout4 = 512, 8, 6, 0.3, 0.3, 0.3, 0.3
+    batch_size, learning_rate1, learning_rate2, weight_decay, task = 8, 0.0001, 0.0001, 1e-4, '123'
     feature_extractor1_name, feature_extractor2_name = 'transformer', 'resnet'
-    transformer_with_positional, lambda_d = True, 0.1
-    num_epochs, patience = 1000, 200
+    transformer_with_positional, lambda_d = True, 1.0
+    num_epochs, patience = 1000, 500
 
     params = {
         'nperseg': nperseg,
