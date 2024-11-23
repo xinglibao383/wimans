@@ -233,9 +233,9 @@ if __name__ == "__main__":
 
     nperseg, noverlap, nfft, window, remove_static, remove_noise = 512, 384, 1024, 'hamming', True, True
     hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3, dropout4 = 512, 8, 6, 0.3, 0.3, 0.3, 0.3
-    batch_size, learning_rate1, learning_rate2, weight_decay, task = 8, 0.0001, 0.0001, 1e-4, '123'
+    batch_size, learning_rate1, learning_rate2, weight_decay, task = 8, 0.0001, 0.0003, 1e-4, '123'
     feature_extractor1_name, feature_extractor2_name = 'transformer', 'resnet'
-    transformer_with_positional, lambda_d = True, 1.0
+    transformer_with_positional, lambda_d = True, 0.3
     num_epochs, patience = 1000, 500
 
     params = {
