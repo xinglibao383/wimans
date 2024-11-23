@@ -8,10 +8,13 @@ import pandas as pd
 
 
 class WiMANS(Dataset):
-    def __init__(self, root_path, nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, remove_noise=True):
+    def __init__(self, root_path, nperseg=512, noverlap=128, nfft=1024, window='hamming', remove_static=True, remove_noise=True, stft_channel=270):
         noise = '_without_noise' if remove_noise else ''
         static = '_without_static' if remove_static else '_with_static'
-        self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft', f'{nperseg}_{noverlap}_{nfft}_{window}{noise}{static}')
+        if stft_channel == 270:
+            self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft', f'{nperseg}_{noverlap}_{nfft}_{window}{noise}{static}')
+        else:
+            self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft', f'{nperseg}_{noverlap}_{nfft}_{window}{noise}{static}_pca12')
         # phase_unwrapped is better than phase
         # self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase')
         self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase_unwrapped')

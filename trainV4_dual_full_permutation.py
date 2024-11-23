@@ -22,9 +22,10 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
           hidden_dim, nhead, encoder_layers, dropout1, dropout2, dropout3,
           learning_rate, weight_decay, use_scheduler, task, 
           feature_extractor1_name, feature_extractor2_name, 
-          transformer_with_positional):
+          transformer_with_positional, stft_channel=270):
     output_save_path, logger, devices = prepare()
     params = {
+        'stft_channel': stft_channel,
         'nperseg': nperseg,
         'noverlap': noverlap,
         'nfft': nfft,
@@ -48,13 +49,13 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
     logger.record([f'Training parameters: {json.dumps(params, indent=4)}'])
     
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans', 
-                     nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window, remove_static=remove_static, remove_noise=remove_noise)
+                     nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window, remove_static=remove_static, remove_noise=remove_noise, stft_channel=stft_channel)
     train_loader, val_loader = get_dataloaders_without_test_v2(dataset, batch_size=128)
 
     # net = MyModelV1(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3)
     net = MyModelV2(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3, 
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name, 
-                    transformer_with_positional = transformer_with_positional)
+                    transformer_with_positional=transformer_with_positional, stft_channel=stft_channel)
 
     trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 2000, 1000, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)
@@ -101,13 +102,13 @@ def train_batch():
             learning_rate=0.0001, weight_decay=1e-4, use_scheduler=False, task='3', 
             feature_extractor1_name='temporal_fusion_transformer', feature_extractor2_name='resnet')
       
-def train_sigle():
+def train_single():
       train(nperseg=1024, noverlap=768, nfft=2048, window='hamming', remove_static=True, remove_noise=True, 
             hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.4, dropout2=0.4, dropout3=0.3,
             learning_rate=0.0001, weight_decay=1e-3, use_scheduler=False, task='123', 
             feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
-            transformer_with_positional=True)
+            transformer_with_positional=True, stft_channel=108)
     
 
 if __name__ == "__main__":
-      train_sigle()
+      train_single()

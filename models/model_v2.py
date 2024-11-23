@@ -7,19 +7,19 @@ import torchvision.models as models
 
 
 class ResNet(nn.Module):
-    def __init__(self, hidden_dim=1024, dropout=0.3, backbone=None, interpolate=False):
+    def __init__(self, hidden_dim=1024, dropout=0.3, backbone=None, interpolate=False, stft_channel=270):
         super(ResNet, self).__init__()
 
         self.interpolate = interpolate
 
-        self.conv1 = nn.Conv2d(in_channels=270, out_channels=128, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(in_channels=32, out_channels=3, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=stft_channel, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=16, out_channels=3, kernel_size=3, stride=1, padding=1)
         
-        self.bn1 = nn.BatchNorm2d(128)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.bn3 = nn.BatchNorm2d(32)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.bn3 = nn.BatchNorm2d(16)
         self.bn4 = nn.BatchNorm2d(3)
 
         self.dropout = nn.Dropout(p=dropout)
@@ -216,7 +216,7 @@ class TemporalFusionTransformer(nn.Module):
 class FeatureExtractor(nn.Module):
     def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
                  feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
-                 transformer_with_positional=False):
+                 transformer_with_positional=False, stft_channel=270):
         super(FeatureExtractor, self).__init__()
 
         if feature_extractor1_name == 'temporal_fusion_transformer':
@@ -228,7 +228,7 @@ class FeatureExtractor(nn.Module):
         if feature_extractor2_name == 'swin_transformer':
             self.feature_extractor2 = SwinTransformer(hidden_dim, dropout2)
         elif feature_extractor2_name == 'resnet':
-            self.feature_extractor2 = ResNet(hidden_dim, dropout2)
+            self.feature_extractor2 = ResNet(hidden_dim, dropout2, stft_channel=stft_channel)
 
     def forward(self, x1, x2):
         return torch.cat((self.feature_extractor1(x1), self.feature_extractor2(x2)), dim=1)
@@ -239,7 +239,7 @@ class MyModel(nn.Module):
                  dropout3=0.3,
                  num_users=6, num_locations=5, num_activities=9,
                  feature_extractor1_name='transformer', feature_extractor2_name='swin-transformer', 
-                 transformer_with_positional=False):
+                 transformer_with_positional=False, stft_channel=270):
         super(MyModel, self).__init__()
 
         self.num_users = num_users
@@ -250,7 +250,7 @@ class MyModel(nn.Module):
 
         self.feature_extractor = FeatureExtractor(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2,
                                                   feature_extractor1_name, feature_extractor2_name, 
-                                                  transformer_with_positional)
+                                                  transformer_with_positional, stft_channel=stft_channel)
 
         """
         self.head1 = nn.Linear(self.hidden_dim, self.num_users * 2)
