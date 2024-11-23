@@ -114,11 +114,11 @@ class Transformer(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout)
 
-        self.conv1 = nn.Conv1d(in_channels=270, out_channels=512, kernel_size=3, stride=2, padding=1)
-        self.conv2 = nn.Conv1d(in_channels=512, out_channels=270, kernel_size=3, stride=2, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=self.input_dim, out_channels=256, kernel_size=3, stride=2, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=256, out_channels=self.input_dim, kernel_size=3, stride=2, padding=1)
         
-        self.bn1 = nn.BatchNorm1d(512)
-        self.bn2 = nn.BatchNorm1d(270)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.bn2 = nn.BatchNorm1d(self.input_dim)
 
         self.input_linear = nn.Linear(input_dim, hidden_dim)
         # todo xinglibao: max_len should be computed, and is affected by conv1 and conv2
@@ -216,7 +216,7 @@ class TemporalFusionTransformer(nn.Module):
 class FeatureExtractor(nn.Module):
     def __init__(self, input_dim=270, hidden_dim=1024, nhead=8, encoder_layers=6, dropout1=0.3, dropout2=0.3,
                  feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
-                 transformer_with_positional=False, stft_channel=270):
+                 transformer_with_positional=False):
         super(FeatureExtractor, self).__init__()
 
         if feature_extractor1_name == 'temporal_fusion_transformer':
@@ -228,7 +228,7 @@ class FeatureExtractor(nn.Module):
         if feature_extractor2_name == 'swin_transformer':
             self.feature_extractor2 = SwinTransformer(hidden_dim, dropout2)
         elif feature_extractor2_name == 'resnet':
-            self.feature_extractor2 = ResNet(hidden_dim, dropout2, stft_channel=stft_channel)
+            self.feature_extractor2 = ResNet(hidden_dim, dropout2, stft_channel=input_dim)
 
     def forward(self, x1, x2):
         return torch.cat((self.feature_extractor1(x1), self.feature_extractor2(x2)), dim=1)
@@ -239,7 +239,7 @@ class MyModel(nn.Module):
                  dropout3=0.3,
                  num_users=6, num_locations=5, num_activities=9,
                  feature_extractor1_name='transformer', feature_extractor2_name='swin-transformer', 
-                 transformer_with_positional=False, stft_channel=270):
+                 transformer_with_positional=False):
         super(MyModel, self).__init__()
 
         self.num_users = num_users
@@ -250,7 +250,7 @@ class MyModel(nn.Module):
 
         self.feature_extractor = FeatureExtractor(input_dim, hidden_dim, nhead, encoder_layers, dropout1, dropout2,
                                                   feature_extractor1_name, feature_extractor2_name, 
-                                                  transformer_with_positional, stft_channel=stft_channel)
+                                                  transformer_with_positional)
 
         """
         self.head1 = nn.Linear(self.hidden_dim, self.num_users * 2)
