@@ -104,7 +104,7 @@ def train_batch():
       
 def train_single():
       train(nperseg=1024, noverlap=768, nfft=2048, window='hamming', remove_static=True, remove_noise=True, 
-            hidden_dim=512, nhead=8, encoder_layers=6, dropout1=0.4, dropout2=0.4, dropout3=0.3,
+            hidden_dim=512, nhead=8, encoder_layers=4, dropout1=0.4, dropout2=0.4, dropout3=0.4,
             learning_rate=0.0001, weight_decay=1e-3, use_scheduler=False, task='123', 
             feature_extractor1_name='transformer', feature_extractor2_name='resnet', 
             transformer_with_positional=True, stft_channel=108)
