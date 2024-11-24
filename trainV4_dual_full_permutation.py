@@ -53,9 +53,9 @@ def train(nperseg, noverlap, nfft, window, remove_static, remove_noise,
     train_loader, val_loader = get_dataloaders_without_test_v2(dataset, batch_size=128)
 
     # net = MyModelV1(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3)
-    net = MyModelV2(hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3, 
+    net = MyModelV2(input_dim=stft_channel, hidden_dim=hidden_dim, nhead=nhead, encoder_layers=encoder_layers, dropout1=dropout1, dropout2=dropout2, dropout3=dropout3,
                     feature_extractor1_name=feature_extractor1_name, feature_extractor2_name=feature_extractor2_name, 
-                    transformer_with_positional=transformer_with_positional, stft_channel=stft_channel)
+                    transformer_with_positional=transformer_with_positional)
 
     trainV4_dual.train(net, train_loader, val_loader, learning_rate, weight_decay, 2000, 1000, 
                        devices, output_save_path, logger, use_scheduler=use_scheduler, task=task)

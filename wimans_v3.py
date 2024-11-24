@@ -17,7 +17,10 @@ class WiMANS(Dataset):
             self.spectra_parent_path = os.path.join(root_path, 'wifi_csi', 'stft', f'{nperseg}_{noverlap}_{nfft}_{window}{noise}{static}_pca12')
         # phase_unwrapped is better than phase
         # self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase')
-        self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase_unwrapped')
+        if stft_channel == 270:
+            self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase_unwrapped')
+        else:
+            self.csi_parent_path = os.path.join(root_path, 'wifi_csi', 'phase_unwrapped_pca12')
         self.label_file_path = os.path.join(root_path, 'annotation.csv')
         self.num_users = 6
         self.num_locations = 5
