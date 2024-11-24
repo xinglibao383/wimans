@@ -84,10 +84,10 @@ class WiMANS(Dataset):
             user_activity = row[f'user_{i}_activity'].values[0]
 
             if user_location and user_activity:
-                identity_label[i - 1] = 1
 
                 location_idx = self.location_map.get(user_location, None)
                 if location_idx is not None:
+                    identity_label[i - 1] = 1
                     location_label[i - 1] = location_idx
 
                 activity_idx = self.activity_map.get(user_activity, None)
@@ -179,27 +179,19 @@ def get_dataloaders_without_test_v2(dataset, batch_size, train_ratio=0.7, base=9
 
 if __name__ == "__main__":
     dataset = WiMANS(root_path='/data/XLBWorkSpace/wimans')
-    train_loader, eval_loader, test_loader = get_dataloaders(dataset, batch_size=32, train_ratio=0.8, eval_ratio=0.2)
+    train_loader, eval_loader = get_dataloaders_without_test_v2(dataset, batch_size=32)
 
     for batch_idx, (csi, spectra, identity_label, location_label, activity_label) in enumerate(train_loader):
         print(f"Train Batch {batch_idx + 1}")
         print("CSI Shape:", csi.shape)
         print("Spectra Shape:", spectra.shape)
+        print("Identity:", identity_label)
         print("Identity Label Shape:", identity_label.shape)
         print("Location Label Shape:", location_label.shape)
         print("Activity Label Shape:", activity_label.shape)
         print("-------------------------------------------------")
 
     for batch_idx, (csi, spectra, identity_label, location_label, activity_label) in enumerate(eval_loader):
-        print(f"Train Batch {batch_idx + 1}")
-        print("CSI Shape:", csi.shape)
-        print("Spectra Shape:", spectra.shape)
-        print("Identity Label Shape:", identity_label.shape)
-        print("Location Label Shape:", location_label.shape)
-        print("Activity Label Shape:", activity_label.shape)
-        print("-------------------------------------------------")
-
-    for batch_idx, (csi, spectra, identity_label, location_label, activity_label) in enumerate(test_loader):
         print(f"Train Batch {batch_idx + 1}")
         print("CSI Shape:", csi.shape)
         print("Spectra Shape:", spectra.shape)
