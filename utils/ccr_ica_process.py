@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from .ccr_ica import ccr_ica
+from ccr_ica import ccr_ica
 
 
 def get_labels_from_csv(csv, row_id):
@@ -38,7 +38,12 @@ def get_filepaths_and_labels(root_path):
 
 if __name__ == "__main__":
     root_path = '/data/XLBWorkSpace/wimans'
+    save_path = '/data/temp/wimans'
     filenames, filepaths, labels = get_filepaths_and_labels(root_path)
     for i in range(0, len(filenames)):
-        data = ccr_ica(np.load(filepaths[i]), labels[i])
-        np.save(os.path.join(root_path, 'wifi_csi', 'amp_ccr_ica', filenames[i]), data)
+        if labels[i] == 0:
+            np.save(os.path.join(save_path, 'wifi_csi', 'amp_ccr_ica', filenames[i]), np.empty((0, 3000, 3, 3, 30)))
+        else:
+            data = ccr_ica(np.load(filepaths[i]), labels[i])
+            np.save(os.path.join(save_path, 'wifi_csi', 'amp_ccr_ica', filenames[i]), data)
+        print(os.path.join(save_path, 'wifi_csi', 'amp_ccr_ica', filenames[i]))
